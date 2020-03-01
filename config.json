@@ -3,8 +3,11 @@
   "version": "20.04",
   "distribution" : "alpine",
   "build" : [
-    "clib/build",
-    "clib/package",
-    "clib/test"
+    {
+      "name": "clib",
+      "build": true,
+      "test": true,
+      "package": true
+    }
   ]
 }
