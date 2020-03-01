@@ -1,0 +1,10 @@
+{
+  "git_tag": "master",
+  "version": "20.04",
+  "distribution" : "alpine",
+  "build" : [
+    "clib/build",
+    "clib/package",
+    "clib/test"
+  ]
+}
