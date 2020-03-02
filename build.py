@@ -1,7 +1,8 @@
 #!/bin/env python
 import os
-import subprocess
 import json
+import subprocess
+import sys
 
 class Debug:
     HEADER = '\033[95m'
@@ -79,8 +80,16 @@ class Docker:
     def package(self, name):
         self.dbg.info('starting package phase for ' + self.dbg.OKBLUE + name + self.dbg.ENDC)
 
-        os.chdir(self.work_path + '/' + name + '/package/' + self.distro)
-        return_code = self.__launch(['docker', 'build', '-t', name + '-' + self.version + '-test:' + self.distro, '.'])
+        wdir = self.work_path + '/' + name + '/package/' + self.distro
+        print(wdir)
+        sys.path.append(wdir)
+        import generate
+        generate.generate_recipe(self.version, self.git_rev, wdir)
+
+        self.dbg.info('generate recipe ' + self.dbg.OKBLUE + "done" + self.dbg.ENDC)
+        os.chdir(wdir)
+        return_code = self.__launch(['docker', 'build', '-t', name + '-' + self.version + '-package:' + self.distro, '.'])
+        return_code = return_code + self.__launch(['./get_files.sh', self.version])
         os.chdir(self.work_path)
 
         if return_code == 0:
