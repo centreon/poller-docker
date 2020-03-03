@@ -7,13 +7,15 @@
       "name": "clib",
       "build": true,
       "test": true,
-      "package": true
+      "package": true,
+      "pkg_deps": []
     },
     {
       "name": "engine",
       "build": true,
       "test": true,
-      "package": false
+      "package": true,
+      "pkg_deps": ["clib", "clib-dev"]
     }
   ]
 }

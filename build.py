@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import sys
+import shutil
 
 class Debug:
     HEADER = '\033[95m'
@@ -49,10 +50,15 @@ class Docker:
                 break
         return return_code
 
-    def build(self, name):
+    def build(self, name, deps):
         self.dbg.info('starting build phase for ' + self.dbg.OKBLUE + name + self.dbg.ENDC)
 
         os.chdir(self.work_path + '/' + name + '/build/' + self.distro)
+        for dep in deps:
+            src = self.work_path + '/packages/' + dep + '-' + self.version + '-r0.apk'
+            dest = self.work_path + '/' + name + '/build/' + self.distro + '/' + dep + '-' + self.version + '-r0.apk'
+            self.dbg.info('copy ' + self.dbg.OKBLUE + src + self.dbg.ENDC + ' to ' + self.dbg.OKBLUE + dest + self.dbg.ENDC)
+            shutil.copyfile(src, dest)
         return_code = self.__launch(['docker', 'build', '-t', name + '-' + self.version + ':' + self.distro, '.'])
         os.chdir(self.work_path)
 
@@ -77,7 +83,7 @@ class Docker:
             self.dbg.error('build fail with error code: ' + self.dbg.WARNING + str(return_code) + self.dbg.ENDC)
             return False
 
-    def package(self, name):
+    def package(self, name, deps):
         self.dbg.info('starting package phase for ' + self.dbg.OKBLUE + name + self.dbg.ENDC)
 
         wdir = self.work_path + '/' + name + '/package/' + self.distro
@@ -85,9 +91,17 @@ class Docker:
         sys.path.append(wdir)
         import generate
         generate.generate_recipe(self.version, self.git_rev, wdir)
+        del sys.modules["generate"]
+        sys.path.remove(wdir)
 
         self.dbg.info('generate recipe ' + self.dbg.OKBLUE + "done" + self.dbg.ENDC)
         os.chdir(wdir)
+        for dep in deps:
+            src = self.work_path + '/packages/' + dep + '-' + self.version + '-r0.apk'
+            dest = self.work_path + '/' + name + '/package/' + self.distro + '/' + dep + '-' + self.version + '-r0.apk'
+            self.dbg.info('copy ' + self.dbg.OKBLUE + src + self.dbg.ENDC + ' to ' + self.dbg.OKBLUE + dest + self.dbg.ENDC)
+            shutil.copyfile(src, dest)
+
         return_code = self.__launch(['docker', 'build', '-t', name + '-' + self.version + '-package:' + self.distro, '.'])
         return_code = return_code + self.__launch(['./get_files.sh', self.version])
         os.chdir(self.work_path)
@@ -108,8 +122,8 @@ if __name__ == '__main__':
 
     for proj in config['build']:
         if proj['build'] == True:
-            dock.build(proj['name'])
+            dock.build(proj['name'], proj['pkg_deps'])
         if proj['test'] == True:
             dock.test(proj['name'])
         if proj['package'] == True:
-            dock.package(proj['name'])
+            dock.package(proj['name'], proj['pkg_deps'])
